@@ -1,0 +1,6 @@
+use_plm: true
+use_gemme: false
+use_ddg_foldx: false
+use_ddg_rosetta: false
+use_deepddg: false
+use_disorder: false
