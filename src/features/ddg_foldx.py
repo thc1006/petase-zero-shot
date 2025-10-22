@@ -68,9 +68,10 @@ def _parse_mutations_from_id(seq_id: str, chain: str = 'A') -> List[str]:
     Returns:
         List of mutations in FoldX format (e.g., ["SA121E", "DA186H"])
     """
-    # Pattern: [Single letter][Number(s)][Single letter]
-    # Example: S121E, D186H, R224Q
-    mutation_pattern = r'([A-Z])(\d+)([A-Z])'
+    # Pattern: [Single letter][1-4 digit number][Single letter]
+    # Must be preceded by _ or | and followed by _ or end of string
+    # Example: S121E, D186H, R224Q (from "...| S121E_D186H...")
+    mutation_pattern = r'(?:^|[_|])([A-Z])(\d{1,4})([A-Z])(?=[_|]|$)'
 
     matches = re.findall(mutation_pattern, seq_id)
 
