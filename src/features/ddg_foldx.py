@@ -119,44 +119,70 @@ def _run_foldx_buildmodel(
     """
     Run FoldX BuildModel command.
 
+    IMPORTANT: FoldX must run from the FoldX directory (not temp directories).
+    This function uses the FoldX installation directory as working directory.
+
     Args:
         pdb_path: Path to reference PDB structure
         mutation_file: Path to individual_list.txt
-        work_dir: Working directory for FoldX output
-        foldx_exe: Path to FoldX executable
+        work_dir: Output directory for FoldX results (files will be moved here after)
+        foldx_exe: Path to FoldX executable (or WSL wrapper)
         timeout: Timeout in seconds (default 300 = 5 minutes)
 
     Returns:
         Dict with execution metadata (returncode, stdout, stderr)
     """
-    # Copy PDB and rotabase to working directory
+    # FoldX must run from its installation directory
+    # Use tools/foldx/ as working directory
+    foldx_dir = Path("tools/foldx").resolve()
     pdb_name = Path(pdb_path).name
-    shutil.copy(pdb_path, Path(work_dir) / pdb_name)
 
-    rotabase_src = Path("tools/foldx/rotabase.txt")
-    if rotabase_src.exists():
-        shutil.copy(rotabase_src, Path(work_dir) / "rotabase.txt")
+    # Copy PDB to FoldX directory if not already there
+    foldx_pdb = foldx_dir / pdb_name
+    if not foldx_pdb.exists() or foldx_pdb != Path(pdb_path).resolve():
+        shutil.copy(pdb_path, foldx_pdb)
 
-    # Convert to absolute path for Windows subprocess compatibility
-    foldx_exe_abs = os.path.abspath(foldx_exe)
+    # Read mutation file content
+    mutation_content = mutation_file.read_text(encoding='utf-8').strip()
 
-    # FoldX BuildModel command
-    cmd = [
-        foldx_exe_abs,
-        "--command=BuildModel",
-        f"--pdb={pdb_name}",
-        f"--mutant-file={mutation_file.name}",
-        "--numberOfRuns=3",  # Average over 3 runs for stability
-    ]
+    # Detect if using WSL wrapper and construct appropriate command
+    if 'wsl' in foldx_exe.lower() or foldx_exe.endswith('.bat'):
+        # WSL mode: Call Linux FoldX directly via WSL
+        foldx_dir_wsl = str(foldx_dir).replace('\\', '/').replace('C:', '/mnt/c').replace('D:', '/mnt/d')
+        foldx_linux = f"{foldx_dir_wsl}/foldx_20251231"
+
+        # CRITICAL: Create individual_list.txt inside bash command to avoid WSL file copy issues
+        # Construct WSL command - run from FoldX directory
+        cmd = [
+            "wsl", "bash", "-c",
+            f"cd '{foldx_dir_wsl}' && echo '{mutation_content}' > individual_list.txt && '{foldx_linux}' --command=BuildModel --pdb={pdb_name} --mutant-file=individual_list.txt --numberOfRuns=1"
+        ]
+        run_cwd = None
+    else:
+        # Native Windows FoldX
+        foldx_exe_abs = os.path.abspath(foldx_exe)
+        cmd = [
+            foldx_exe_abs,
+            "--command=BuildModel",
+            f"--pdb={pdb_name}",
+            "--mutant-file=individual_list.txt",
+            "--numberOfRuns=1",  # Using 1 run due to FoldX crash with multiple runs
+        ]
+        run_cwd = str(foldx_dir)
 
     try:
         result = subprocess.run(
             cmd,
-            cwd=work_dir,
+            cwd=run_cwd,
             capture_output=True,
             text=True,
             timeout=timeout
         )
+
+        # Move output files to work_dir for parsing
+        if result.returncode == 0:
+            for fxout_file in foldx_dir.glob("*.fxout"):
+                shutil.move(str(fxout_file), Path(work_dir) / fxout_file.name)
 
         return {
             'returncode': result.returncode,
@@ -390,19 +416,20 @@ def ddg_foldx_scores(seqs: List[Tuple[str, str]], cfg: dict) -> Dict[str, float]
 
     print(f"[INFO] Wild-type sequence: {len(wt_seq)} aa")
 
-    # Get PDB residue numbering range and offset
+    # Get PDB residue numbering range
     first_res, last_res, pdb_offset = _get_pdb_range(pdb_path, chain)
-    if pdb_offset > 0:
-        print(f"[INFO] PDB numbering: {first_res}-{last_res} (offset +{pdb_offset})")
+    print(f"[INFO] PDB numbering: {first_res}-{last_res}")
 
     # Process each variant
     ddg_results = {}
 
     for seq_id, mut_seq in seqs:
         try:
-            # Parse mutations from sequence ID with PDB offset
+            # Parse mutations from sequence ID
+            # NOTE: Mutation codes in FASTA headers (e.g., S121E) already use PDB residue numbering!
+            # Do NOT apply additional offset - they are PDB-compatible positions
             # (e.g., "FAST_PETase|S121E_D186H_R224Q_N233K_R280E")
-            all_mutations = _parse_mutations_from_id(seq_id, chain, pdb_offset)
+            all_mutations = _parse_mutations_from_id(seq_id, chain, pdb_offset=0)
 
             # Filter mutations to only include those within PDB range
             mutations = []
