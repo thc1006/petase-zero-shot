@@ -20,6 +20,7 @@ import tempfile
 from pathlib import Path
 from typing import List, Tuple, Dict
 import shutil
+import re
 
 
 def _generate_mutation_list(wt_seq: str, mut_seq: str, chain: str = 'A') -> List[str]:
@@ -47,6 +48,37 @@ def _generate_mutation_list(wt_seq: str, mut_seq: str, chain: str = 'A') -> List
             position = i + 1
             mutation = f"{wt_aa}{chain}{position}{mut_aa}"
             mutations.append(mutation)
+
+    return mutations
+
+
+def _parse_mutations_from_id(seq_id: str, chain: str = 'A') -> List[str]:
+    """
+    Parse mutation codes from FASTA sequence ID.
+
+    Examples:
+        "FAST_PETase|S121E_D186H_R224Q_N233K_R280E" -> ["SA121E", "DA186H", "RA224Q", "NA233K", "RA280E"]
+        "Bhr_NMT|H218N_F222M_F243T" -> ["HA218N", "FA222M", "FA243T"]
+        "IsPETase_WT|P0C395|Ideonella_sakaiensis" -> [] (no mutations)
+
+    Args:
+        seq_id: FASTA sequence ID containing mutation codes
+        chain: PDB chain identifier (default 'A')
+
+    Returns:
+        List of mutations in FoldX format (e.g., ["SA121E", "DA186H"])
+    """
+    # Pattern: [Single letter][Number(s)][Single letter]
+    # Example: S121E, D186H, R224Q
+    mutation_pattern = r'([A-Z])(\d+)([A-Z])'
+
+    matches = re.findall(mutation_pattern, seq_id)
+
+    mutations = []
+    for wt_aa, position, mut_aa in matches:
+        # FoldX format: [WT_aa][Chain][Position][Mut_aa]
+        mutation = f"{wt_aa}{chain}{position}{mut_aa}"
+        mutations.append(mutation)
 
     return mutations
 
@@ -287,16 +319,8 @@ def ddg_foldx_scores(seqs: List[Tuple[str, str]], cfg: dict) -> Dict[str, float]
 
     for seq_id, mut_seq in seqs:
         try:
-            # Align sequences (simple: assume same length, trim/pad if needed)
-            if len(mut_seq) > len(wt_seq):
-                mut_seq_aligned = mut_seq[:len(wt_seq)]
-            elif len(mut_seq) < len(wt_seq):
-                mut_seq_aligned = mut_seq + 'A' * (len(wt_seq) - len(mut_seq))
-            else:
-                mut_seq_aligned = mut_seq
-
-            # Generate mutations
-            mutations = _generate_mutation_list(wt_seq, mut_seq_aligned, chain)
+            # Parse mutations from sequence ID (e.g., "FAST_PETase|S121E_D186H_R224Q_N233K_R280E")
+            mutations = _parse_mutations_from_id(seq_id, chain)
 
             # Wild-type has ΔΔG = 0.0
             if not mutations:
