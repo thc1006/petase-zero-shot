@@ -4,7 +4,7 @@ use_gemme: false
 use_ddg_foldx: true
 use_ddg_rosetta: false
 use_deepddg: false
-use_disorder: false
+use_disorder: true
 use_priors: true
 
 # Hardware acceleration (GPU available: NVIDIA GeForce RTX 3050)
