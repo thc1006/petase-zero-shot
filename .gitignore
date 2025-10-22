@@ -30,17 +30,21 @@ htmlcov/
 
 # Pipeline outputs (keep structure, ignore temp data)
 data/output/
-data/output_real/
-data/proteingym/DMS_*.csv
+data/output_*/
+data/competition*/
+data/proteingym/DMS_ProteinGym_substitutions/
 data/proteingym/*.zip
 runs/*/
 submission/
-reports/
 
 # Temporary files
 *.log
 temp/
 tmp/
+debug_*.py
+test_*.py
+test_*.fasta
+*_test.txt
 
 # OS
 .DS_Store
