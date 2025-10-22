@@ -30,8 +30,12 @@ htmlcov/
 
 # Pipeline outputs (keep structure, ignore temp data)
 data/output/
+data/output_real/
+data/proteingym/DMS_*.csv
+data/proteingym/*.zip
 runs/*/
 submission/
+reports/
 
 # Temporary files
 *.log
@@ -49,3 +53,5 @@ Thumbs.db
 tools/foldx/*.exe
 tools/foldx/*.zip
 tools/foldx/molecules/
+tools/SaProt/
+tools/foldseek/

@@ -100,9 +100,12 @@ def _run_foldx_buildmodel(
     if rotabase_src.exists():
         shutil.copy(rotabase_src, Path(work_dir) / "rotabase.txt")
 
+    # Convert to absolute path for Windows subprocess compatibility
+    foldx_exe_abs = os.path.abspath(foldx_exe)
+
     # FoldX BuildModel command
     cmd = [
-        foldx_exe,
+        foldx_exe_abs,
         "--command=BuildModel",
         f"--pdb={pdb_name}",
         f"--mutant-file={mutation_file.name}",
