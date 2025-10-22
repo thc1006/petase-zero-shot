@@ -1,7 +1,7 @@
 # Feature toggles
 use_plm: true
 use_gemme: false
-use_ddg_foldx: false
+use_ddg_foldx: true
 use_ddg_rosetta: false
 use_deepddg: false
 use_disorder: false
@@ -10,6 +10,12 @@ use_priors: true
 # Priors configuration
 priors_yaml: data/priors/priors_petase_2024_2025.yaml
 # wt_fasta: data/templates/IsPETase_WT.fasta  # Optional: WT sequence for mutation detection
+
+# FoldX configuration
+foldx_exe: tools/foldx/foldx_20251231.exe
+foldx_pdb: tools/foldx/5XJH.pdb
+foldx_chain: A
+foldx_timeout: 300  # seconds per variant
 
 # Ensemble weights (channels that exist will be auto-selected)
 weights:
