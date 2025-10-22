@@ -8,7 +8,7 @@ def main():
     ap.add_argument('--config', default='config.yaml', help='YAML config')
     args = ap.parse_args()
     os.makedirs(args.outdir, exist_ok=True)
-    with open(args.config) as f:
+    with open(args.config, encoding='utf-8') as f:
         cfg = yaml.safe_load(f)
     run_pipeline(args.input, args.outdir, cfg)
 

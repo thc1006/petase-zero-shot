@@ -1,7 +1,7 @@
 # Feature toggles
 use_plm: true
 use_gemme: false
-use_ddg_foldx: true
+use_ddg_foldx: false
 use_ddg_rosetta: false
 use_deepddg: false
 use_disorder: true
@@ -26,11 +26,11 @@ weights:
     gemme: 0.25
     priors: 0.20
   stability:
-    ddg_foldx: 0.35
-    ddg_rosetta: 0.25
-    ddg_deepddg: 0.15
-    plm_perplexity: 0.10
-    priors: 0.15
+    ddg_foldx: 0.00
+    ddg_rosetta: 0.00
+    ddg_deepddg: 0.00
+    plm_perplexity: 0.35
+    priors: 0.30
   expression:
     solubility_proxy: 0.70
     disorder_proxy: 0.30
