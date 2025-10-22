@@ -230,6 +230,43 @@ def _parse_foldx_output(work_dir: str) -> Dict[str, float]:
     return ddg_dict
 
 
+def _get_pdb_range(pdb_path: str, chain: str = 'A') -> tuple:
+    """
+    Get the residue numbering range from PDB file.
+
+    Args:
+        pdb_path: Path to PDB structure file
+        chain: Chain identifier
+
+    Returns:
+        Tuple of (first_residue, last_residue, offset)
+        e.g., (30, 292, 29) means PDB numbered 30-292, offset +29
+    """
+    try:
+        from Bio.PDB import PDBParser
+
+        parser = PDBParser(QUIET=True)
+        structure = parser.get_structure('protein', pdb_path)
+
+        for model in structure:
+            for pdb_chain in model:
+                if pdb_chain.id == chain:
+                    residue_numbers = []
+                    for residue in pdb_chain:
+                        if residue.id[0] == ' ':  # Standard residue
+                            residue_numbers.append(residue.id[1])
+
+                    if residue_numbers:
+                        first_res = min(residue_numbers)
+                        last_res = max(residue_numbers)
+                        offset = first_res - 1
+                        return (first_res, last_res, offset)
+    except Exception as e:
+        print(f"[WARN] Could not determine PDB range: {e}")
+
+    return (1, 999999, 0)  # Default: no filtering
+
+
 def _get_pdb_offset(pdb_path: str, chain: str = 'A') -> int:
     """
     Get the residue numbering offset from PDB file.
@@ -353,10 +390,10 @@ def ddg_foldx_scores(seqs: List[Tuple[str, str]], cfg: dict) -> Dict[str, float]
 
     print(f"[INFO] Wild-type sequence: {len(wt_seq)} aa")
 
-    # Get PDB residue numbering offset
-    pdb_offset = _get_pdb_offset(pdb_path, chain)
+    # Get PDB residue numbering range and offset
+    first_res, last_res, pdb_offset = _get_pdb_range(pdb_path, chain)
     if pdb_offset > 0:
-        print(f"[INFO] PDB numbering offset: +{pdb_offset} (PDB starts at residue {pdb_offset + 1})")
+        print(f"[INFO] PDB numbering: {first_res}-{last_res} (offset +{pdb_offset})")
 
     # Process each variant
     ddg_results = {}
@@ -365,7 +402,23 @@ def ddg_foldx_scores(seqs: List[Tuple[str, str]], cfg: dict) -> Dict[str, float]
         try:
             # Parse mutations from sequence ID with PDB offset
             # (e.g., "FAST_PETase|S121E_D186H_R224Q_N233K_R280E")
-            mutations = _parse_mutations_from_id(seq_id, chain, pdb_offset)
+            all_mutations = _parse_mutations_from_id(seq_id, chain, pdb_offset)
+
+            # Filter mutations to only include those within PDB range
+            mutations = []
+            filtered_out = []
+            for mut in all_mutations:
+                # Extract position from mutation string (e.g., "SA150E" -> 150)
+                pos_str = ''.join(filter(str.isdigit, mut))
+                if pos_str:
+                    pos = int(pos_str)
+                    if first_res <= pos <= last_res:
+                        mutations.append(mut)
+                    else:
+                        filtered_out.append(mut)
+
+            if filtered_out:
+                print(f"[WARN] {seq_id}: Filtered {len(filtered_out)} mutations outside PDB range: {', '.join(filtered_out)}")
 
             # Wild-type has ΔΔG = 0.0
             if not mutations:
