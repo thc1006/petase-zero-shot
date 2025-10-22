@@ -7,6 +7,9 @@ use_deepddg: false
 use_disorder: false
 use_priors: true
 
+# Hardware acceleration (GPU available: NVIDIA GeForce RTX 3050)
+device: cuda  # Use GPU for PLM inference (10-50x faster than CPU)
+
 # Priors configuration
 priors_yaml: data/priors/priors_petase_2024_2025.yaml
 # wt_fasta: data/templates/IsPETase_WT.fasta  # Optional: WT sequence for mutation detection
