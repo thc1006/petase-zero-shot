@@ -61,6 +61,16 @@ def run_pipeline(fasta_path, outdir, cfg):
         except Exception as e:
             print('[WARN] Disorder proxy failed:', e)
 
+    # === Priors (Activity & Stability) ===
+    if cfg.get('use_priors', False):
+        try:
+            from src.features.priors import prior_scores
+            a_prior, s_prior = prior_scores(seqs, cfg)
+            scores['activity']['priors'] = a_prior
+            scores['stability']['priors'] = s_prior
+        except Exception as e:
+            print('[WARN] Priors channel failed:', e)
+
     pred = fuse_scores(seqs, scores, cfg)
     out_csv = os.path.join(outdir, 'predictions.csv')
     pred.to_csv(out_csv, index=False)

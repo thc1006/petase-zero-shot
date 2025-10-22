@@ -1,3 +1,51 @@
 # Pre-migration backups
 pre-migration-backup-*/
-prompts
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+
+# Virtual environments
+venv/
+ENV/
+env/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+
+# Environment
+.env
+.env.local
+
+# Test outputs
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Pipeline outputs (keep structure, ignore temp data)
+data/output/
+runs/*/
+submission/
+
+# Temporary files
+*.log
+temp/
+tmp/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Model caches
+.cache/
+
+# Tools (large binaries)
+tools/foldx/*.exe
+tools/foldx/*.zip
+tools/foldx/molecules/

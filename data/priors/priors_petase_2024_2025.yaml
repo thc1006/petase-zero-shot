@@ -1,0 +1,225 @@
+# PETase Zero-Shot Priors (2024-2025 Literature)
+# Source: 30+ peer-reviewed variants from Nature, ACS, FEBS, etc.
+# Usage: Fourth signal channel alongside PLM, ΔΔG, solubility proxies
+
+version: "1.0"
+reference_numbering: "IsPETase"  # All positions use IsPETase numbering
+
+# ============================================================
+# ACTIVITY PRIORS
+# ============================================================
+activity:
+
+  # Catalytic triad - HARD CONSTRAINTS (do not mutate)
+  catalytic_triad:
+    positions: [160, 206, 237]  # Ser160, Asp206, His237
+    penalty_if_mutated: -2.5
+    radius: 0  # Exact sequence position match (no spatial radius yet)
+    rationale: "Essential catalytic machinery; Ser160=nucleophile, His237=base/acid, Asp206=activator"
+    citations:
+      - "10.1038/s42003-025-08364-6"
+      - "10.1002/cssc.202402614"
+
+  # Oxyanion hole - stabilizes tetrahedral intermediate
+  oxyanion_hole:
+    positions: [87, 161]  # Typically backbone NH groups
+    penalty_if_mutated: -2.0
+    radius: 0
+    rationale: "Stabilizes tetrahedral intermediate during ester hydrolysis"
+    citations:
+      - "10.1038/s42003-025-08364-6"
+      - "10.1002/cssc.202402614"
+
+  # Favorable mutation regions (positive rewards)
+  favorable_regions:
+
+    - name: "beta6-beta7_loop"
+      positions: [218, 222, 243]
+      reward: 0.75
+      rationale: "Loop reconstruction to match amorphous PET gauche conformation; H218N reduces VdW clash, F222M improves hydrophobic packing"
+      evidence: "Bhr-NMT (93%), LCC-ICCG-NM (90%), Kubu-P-NM (94% best-in-class)"
+      citations:
+        - "10.1038/s42003-025-08364-6"  # PMID 40527955
+
+    - name: "beta8-alpha6_loop"
+      positions: [153, 183, 202, 208]
+      reward: 0.70
+      rationale: "Active site architecture optimization; SLIM-targeted mutagenesis yields 4.46-fold activity boost"
+      evidence: "YITA variant (H183Y/L202I/I208T/T153A)"
+      citations:
+        - "10.1016/j.jhazmat.2025.137837"  # PMID 40054191
+
+    - name: "N212_glycosylation_site"
+      positions: [212]
+      reward: 0.60
+      rationale: "N212A enables N-glycosylation in yeast/silkworm; enhances thermostability"
+      evidence: "N212A variants show higher thermal stability in P. pastoris and Bombyx mori"
+      citations:
+        - "10.1016/j.ijbiomac.2025.145862"  # PMID 40653245
+        - "10.1016/j.jhazmat.2025.139446"    # PMID 40773845
+
+    - name: "substrate_binding_groove"
+      positions: [159, 238]
+      reward: 0.55
+      rationale: "S238F/W159H improve substrate access and binding geometry"
+      evidence: "Enhanced TPA production on cotton/PET mixed textiles"
+      citations:
+        - "10.1002/cbic.202500004"  # PMID 40341738
+
+    - name: "active_site_electrostatics"
+      positions: [224]
+      reward: 0.50
+      rationale: "E224 shifts catalytic His pKa; acid-tolerance at pH 4.5"
+      evidence: "TEP109 (top performer at pH 4.5)"
+      citations:
+        - "10.1021/acscatal.5c03460"  # PMID 40995134
+
+    - name: "alternative_catalytic_cysteine"
+      positions: [161]
+      reward: 0.40
+      rationale: "C161 catalytic site (ancestral reconstruction); cleaves both BHET ester bonds simultaneously"
+      evidence: "ASR1-PETase (19.3% identity to IsPETase, novel mechanism)"
+      citations:
+        - "10.1002/cssc.202402614"  # PMID 39865529
+
+# ============================================================
+# STABILITY PRIORS
+# ============================================================
+stability:
+
+  favorable_rules:
+
+    - name: "salt_bridges"
+      reward: 0.65
+      residue_pairs: "inferred"  # Requires structure; placeholder
+      rationale: "Salt bridges confer thermostability (Tm=85°C in AroC)"
+      evidence: "Thermophile-mined enzymes with conserved charged residues"
+      citations:
+        - "10.1002/cbic.202500065"  # PMID 40069109
+
+    - name: "loop_stabilization_beta6_beta7"
+      positions: [218, 222, 243]
+      reward: 0.55
+      rationale: "Rigidify β6-β7 loop for amorphous PET binding; maintain Tm near 92-95°C"
+      evidence: "Bhr-NMT/LCC-ICCG-NM retain Tm 92-93°C despite activity boost"
+      citations:
+        - "10.1038/s42003-025-08364-6"
+
+    - name: "ca2+_binding_site"
+      reward: 0.50
+      positions: "structure-dependent"  # Placeholder
+      rationale: "Ca²⁺ coordination enhances thermal rigidity"
+      evidence: "DP043 crystal structure (1.43Å) shows Ca²⁺ binding"
+      citations:
+        - "10.1021/acscatal.5c03460"  # PMID 40995134
+
+    - name: "disulfide_bridge_candidates"
+      reward: 0.45
+      residue_pairs: "Cys-Cys (structure-dependent)"
+      rationale: "Engineered disulfides can improve Tm by +3-5°C"
+      evidence: "LCC-ICCG-C09 (+3.5°C Tm via computational design)"
+      citations:
+        - "10.1111/febs.70228"  # PMID 40847613
+
+    - name: "reduce_surface_hydrophobic_patches"
+      reward: 0.40
+      rationale: "Excessive surface hydrophobicity causes aggregation; balanced packing improves Tm"
+      evidence: "F222M improves hydrophobic packing without over-exposure"
+      citations:
+        - "10.1038/s42003-025-08364-6"
+
+# ============================================================
+# EXPRESSION PRIORS
+# ============================================================
+expression:
+
+  favorable_rules:
+
+    - name: "amphipathic_peptide_tags"
+      reward: 0.70
+      tag_sequence: "(AEAEAHAH)3"
+      position_preference: "C-terminal > N-terminal"
+      rationale: "S1v1 peptide enhances solubility/activity (4.6-fold C-term, 2.9-fold N-term)"
+      citations:
+        - "10.3390/biom15060888"  # PMID 40563528
+
+    - name: "codon_optimization"
+      reward: 0.60
+      rationale: "Bacillus codon-opt yields 3.2 g/L extracellular (highest reported)"
+      evidence: "LCC codon-opt in B. amyloliquefaciens"
+      citations:
+        - "10.1016/j.ijbiomac.2025.148111"  # PMID 41052562
+
+  penalties:
+
+    - name: "excessive_hydrophobicity"
+      property: "GRAVY"
+      threshold: 0.3  # Positive GRAVY = hydrophobic
+      penalty_multiplier: -0.8
+      rationale: "High GRAVY causes aggregation and low soluble yield"
+      citations:
+        - "10.3390/biom15060888"
+
+    - name: "extreme_charge_imbalance"
+      property: "net_charge_abs"
+      threshold: 25  # |net charge| > 25 at pH 7
+      penalty_offset: -0.5
+      rationale: "Extreme net charge impairs folding and expression"
+      citations:
+        - "10.1021/acscatal.5c03460"
+
+    - name: "excessive_length"
+      property: "sequence_length"
+      threshold: 300
+      penalty_multiplier: -0.6
+      rationale: "D-Fast-PETase (271 residues) shows optimal balance; >300 reduces expression"
+      citations:
+        - "10.1002/chem.202501410"  # PMID 40855630
+
+    - name: "intrinsic_disorder_excess"
+      property: "IUPred_score"
+      threshold: 0.5  # Fraction disordered
+      penalty_multiplier: -0.7
+      rationale: "Excessive disorder lowers yield and activity; LLPS exceptions apply"
+      citations:
+        - "10.1016/j.biortech.2025.133379"  # FAST-PETase LLPS
+
+# ============================================================
+# META-RULES & FUSION STRATEGY
+# ============================================================
+fusion:
+
+  channels:
+    - name: "PLM_pseudolikelihood"
+      weight: 1.0
+      description: "ESM-2 zero-shot variant effect"
+
+    - name: "GEMME_deltaE"
+      weight: 0.8
+      description: "Evolutionary epistasis (optional)"
+
+    - name: "ddG_stability"
+      weight: 0.7
+      description: "FoldX/Rosetta/DeepDDG (optional)"
+
+    - name: "priors_reward"
+      weight: 0.6
+      description: "This YAML-encoded biochemical priors"
+
+  scaling: "median_MAD"  # Median/MAD normalization per channel
+  aggregation: "rank_average"
+  final_range: [0.0, 1.0]
+
+# ============================================================
+# VALIDATION NOTES
+# ============================================================
+validation:
+  external_benchmark: "ProteinGym"
+  no_tournament_tuning: true
+  literature_window: "2024-01 to 2025-04"
+  total_variants_reviewed: 30
+  key_families:
+    - "IsPETase (Ideonella sakaiensis)"
+    - "LCC (Leaf-branch compost cutinase)"
+    - "Bhr-PETase (Burkholderiales)"
+    - "Thermophile cutinases (AroC, etc.)"

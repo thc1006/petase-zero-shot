@@ -1,6 +1,28 @@
+# Feature toggles
 use_plm: true
 use_gemme: false
 use_ddg_foldx: false
 use_ddg_rosetta: false
 use_deepddg: false
 use_disorder: false
+use_priors: true
+
+# Priors configuration
+priors_yaml: data/priors/priors_petase_2024_2025.yaml
+# wt_fasta: data/templates/IsPETase_WT.fasta  # Optional: WT sequence for mutation detection
+
+# Ensemble weights (channels that exist will be auto-selected)
+weights:
+  activity:
+    plm_llr: 0.55
+    gemme: 0.25
+    priors: 0.20
+  stability:
+    ddg_foldx: 0.35
+    ddg_rosetta: 0.25
+    ddg_deepddg: 0.15
+    plm_perplexity: 0.10
+    priors: 0.15
+  expression:
+    solubility_proxy: 0.70
+    disorder_proxy: 0.30
