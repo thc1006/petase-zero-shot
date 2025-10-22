@@ -1,0 +1,37 @@
+# Feature toggles
+use_plm: true
+use_gemme: false
+use_ddg_foldx: false
+use_ddg_rosetta: false
+use_deepddg: false
+use_disorder: true
+use_priors: true
+
+# Hardware acceleration (GPU available: NVIDIA GeForce RTX 3050)
+device: cuda  # Use GPU for PLM inference (10-50x faster than CPU)
+
+# Priors configuration
+priors_yaml: data/priors/priors_petase_2024_2025.yaml
+# wt_fasta: data/templates/IsPETase_WT.fasta  # Optional: WT sequence for mutation detection
+
+# FoldX configuration
+foldx_exe: tools/foldx/foldx_20251231.exe
+foldx_pdb: tools/foldx/5XJH.pdb
+foldx_chain: A
+foldx_timeout: 300  # seconds per variant
+
+# Ensemble weights (channels that exist will be auto-selected)
+weights:
+  activity:
+    plm_llr: 0.55
+    gemme: 0.25
+    priors: 0.20
+  stability:
+    ddg_foldx: 0.35
+    ddg_rosetta: 0.25
+    ddg_deepddg: 0.15
+    plm_perplexity: 0.10
+    priors: 0.15
+  expression:
+    solubility_proxy: 0.70
+    disorder_proxy: 0.30

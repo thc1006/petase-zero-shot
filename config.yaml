@@ -1,7 +1,7 @@
 # Feature toggles
 use_plm: true
 use_gemme: false
-use_ddg_foldx: true
+use_ddg_foldx: false  # Disabled: Windows FoldX crashes (0xC0000409), Linux requires license
 use_ddg_rosetta: false
 use_deepddg: false
 use_disorder: true
@@ -30,8 +30,8 @@ weights:
     ddg_foldx: 0.35
     ddg_rosetta: 0.25
     ddg_deepddg: 0.15
-    plm_perplexity: 0.10
-    priors: 0.15
+    plm_perplexity: 0.35  # Boosted: PLM captures sequence-level stability patterns
+    priors: 0.30  # Boosted: Literature rules for thermostability (LCC, HotPETase)
   expression:
     solubility_proxy: 0.70
     disorder_proxy: 0.30
