@@ -52,7 +52,7 @@ def _generate_mutation_list(wt_seq: str, mut_seq: str, chain: str = 'A') -> List
     return mutations
 
 
-def _parse_mutations_from_id(seq_id: str, chain: str = 'A') -> List[str]:
+def _parse_mutations_from_id(seq_id: str, chain: str = 'A', pdb_offset: int = 0) -> List[str]:
     """
     Parse mutation codes from FASTA sequence ID.
 
@@ -64,6 +64,8 @@ def _parse_mutations_from_id(seq_id: str, chain: str = 'A') -> List[str]:
     Args:
         seq_id: FASTA sequence ID containing mutation codes
         chain: PDB chain identifier (default 'A')
+        pdb_offset: Offset to add to sequence positions for PDB numbering (default 0)
+                    Example: If PDB starts at residue 30, offset = 29
 
     Returns:
         List of mutations in FoldX format (e.g., ["SA121E", "DA186H"])
@@ -77,8 +79,10 @@ def _parse_mutations_from_id(seq_id: str, chain: str = 'A') -> List[str]:
 
     mutations = []
     for wt_aa, position, mut_aa in matches:
+        # Apply PDB offset to position
+        pdb_position = int(position) + pdb_offset
         # FoldX format: [WT_aa][Chain][Position][Mut_aa]
-        mutation = f"{wt_aa}{chain}{position}{mut_aa}"
+        mutation = f"{wt_aa}{chain}{pdb_position}{mut_aa}"
         mutations.append(mutation)
 
     return mutations
@@ -226,6 +230,40 @@ def _parse_foldx_output(work_dir: str) -> Dict[str, float]:
     return ddg_dict
 
 
+def _get_pdb_offset(pdb_path: str, chain: str = 'A') -> int:
+    """
+    Get the residue numbering offset from PDB file.
+
+    PDB files often start numbering from a value > 1.
+    This function returns (first_residue_number - 1).
+
+    Args:
+        pdb_path: Path to PDB structure file
+        chain: Chain identifier
+
+    Returns:
+        Offset to add to sequence positions (e.g., 29 if PDB starts at residue 30)
+    """
+    try:
+        from Bio.PDB import PDBParser
+
+        parser = PDBParser(QUIET=True)
+        structure = parser.get_structure('protein', pdb_path)
+
+        for model in structure:
+            for pdb_chain in model:
+                if pdb_chain.id == chain:
+                    for residue in pdb_chain:
+                        if residue.id[0] == ' ':  # First standard residue
+                            first_residue_num = residue.id[1]
+                            offset = first_residue_num - 1
+                            return offset
+    except Exception as e:
+        print(f"[WARN] Could not determine PDB offset: {e}")
+
+    return 0  # Default: no offset
+
+
 def _extract_wt_sequence_from_pdb(pdb_path: str, chain: str = 'A') -> str:
     """
     Extract wild-type amino acid sequence from PDB file.
@@ -315,13 +353,19 @@ def ddg_foldx_scores(seqs: List[Tuple[str, str]], cfg: dict) -> Dict[str, float]
 
     print(f"[INFO] Wild-type sequence: {len(wt_seq)} aa")
 
+    # Get PDB residue numbering offset
+    pdb_offset = _get_pdb_offset(pdb_path, chain)
+    if pdb_offset > 0:
+        print(f"[INFO] PDB numbering offset: +{pdb_offset} (PDB starts at residue {pdb_offset + 1})")
+
     # Process each variant
     ddg_results = {}
 
     for seq_id, mut_seq in seqs:
         try:
-            # Parse mutations from sequence ID (e.g., "FAST_PETase|S121E_D186H_R224Q_N233K_R280E")
-            mutations = _parse_mutations_from_id(seq_id, chain)
+            # Parse mutations from sequence ID with PDB offset
+            # (e.g., "FAST_PETase|S121E_D186H_R224Q_N233K_R280E")
+            mutations = _parse_mutations_from_id(seq_id, chain, pdb_offset)
 
             # Wild-type has ΔΔG = 0.0
             if not mutations:
